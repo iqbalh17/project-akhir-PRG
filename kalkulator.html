@@ -15,7 +15,7 @@
     
     <nav class="navbar">
         <a href="index.html" class="logo">
-            <div class="logo-icon">🌱</div>
+            <img src="img/logo.png" alt="Logo JejakKarbon" class="logo-img">
             <span>JejakKarbon</span>
         </a>
         <ul class="nav-menu">
@@ -51,14 +51,14 @@
                     Informasi Gedung
                 </h2>
                 <div class="info-box">
-                    <p>💡 <strong>Petunjuk:</strong> Masukkan nama dan luas gedung untuk memulai perhitungan</p>
+                    <p><strong>Petunjuk:</strong> Masukkan nama dan luas gedung untuk memulai perhitungan</p>
                 </div>
                 <div class="form-group">
-                    <label>📝 Nama Gedung</label>
+                    <label>Nama Gedung</label>
                     <input type="text" id="namaGedung" placeholder="Contoh: Gedung Fakultas Teknik">
                 </div>
                 <div class="form-group">
-                    <label>📏 Luas Gedung (m²)</label>
+                    <label>Luas Gedung (m²)</label>
                     <input type="number" id="luasGedung" placeholder="Contoh: 2000" min="1">
                 </div>
             </div>
@@ -66,35 +66,34 @@
             <!-- CARD 2: TAMBAH PERALATAN -->
             <div class="card">
                 <h2>
-                    <div class="icon-circle">⚡</div>
                     Tambah Peralatan Elektronik
                 </h2>
                 <div class="info-box">
-                    <p>💡 Pilih kategori peralatan yang ada di gedung Anda</p>
+                    <p>Pilih kategori peralatan yang ada di gedung Anda</p>
                 </div>
                 <div class="form-group">
-                    <label>🔌 Kategori Peralatan</label>
+                    <label>Kategori Peralatan</label>
                     <select id="kategori" required>
                         <option value="" disabled selected>-- Pilih Peralatan --</option>
-                        <option value="AC">❄️ AC (Air Conditioner)</option>
-                        <option value="Lampu Panel LED">💡 Lampu Panel LED</option>
-                        <option value="Lampu Koridor">💡 Lampu Koridor</option>
-                        <option value="Lift">🛗 Lift</option>
-                        <option value="Komputer">💻 Komputer Desktop</option>
-                        <option value="Server">🖥️ Server Rack</option>
-                        <option value="WiFi">📡 WiFi Access Point</option>
-                        <option value="Proyektor">📽️ Proyektor</option>
-                        <option value="Pompa Air">💧 Pompa Air</option>
-                        <option value="CCTV">📹 CCTV</option>
-                        <option value="Kulkas">🧊 Kulkas</option>
+                        <option value="AC">AC (Air Conditioner)</option>
+                        <option value="Lampu Panel LED">Lampu Panel LED</option>
+                        <option value="Lampu Koridor">Lampu Koridor</option>
+                        <option value="Lift">Lift</option>
+                        <option value="Komputer">Komputer Desktop</option>
+                        <option value="Server">Server Rack</option>
+                        <option value="WiFi">WiFi Access Point</option>
+                        <option value="Proyektor">Proyektor</option>
+                        <option value="Pompa Air">Pompa Air</option>
+                        <option value="CCTV">CCTV</option>
+                        <option value="Kulkas">Kulkas</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>🔢 Jumlah Unit</label>
+                    <label>Jumlah Unit</label>
                     <input type="number" id="jumlah" placeholder="Contoh: 10" min="1">
                 </div>
                 <div class="form-group">
-                    <label>⏰ Jam Operasi per Hari</label>
+                    <label>Jam Operasi per Hari</label>
                     <input type="number" id="jamOperasi" placeholder="Contoh: 8" step="0.5" min="0" max="24">
                 </div>
                 <button onclick="tambahItem()" class="btn btn-primary">➕ Tambah ke Daftar</button>
@@ -105,7 +104,7 @@
             <!-- CARD 3: BUTTON HITUNG -->
             <div class="card">
                 <button onclick="hitungKarbon()" class="btn btn-primary" style="width: 100%; font-size: 19px; padding: 18px;">
-                    🔬 Hitung Total Emisi Karbon
+                    Hitung Total Emisi Karbon
                 </button>
             </div>
 
@@ -117,7 +116,7 @@
                 <h2>Ingin Tahu Lebih Banyak?</h2>
                 <p>Pelajari dampak emisi karbon dan pentingnya mengurangi jejak karbon untuk masa depan bumi</p>
                 <a href="index.html#edukasi" class="btn btn-primary" style="background: white; color: var(--primary-color);">
-                    📚 Lihat Edukasi
+                    Lihat Edukasi
                 </a>
             </div>
 

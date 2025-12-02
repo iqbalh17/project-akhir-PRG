@@ -2,6 +2,12 @@
 /* KALKULATOR PAGE SPECIFIC STYLES */
 /* ============================================ */
 
+.logo-img {
+    height: 50px; 
+    width: auto;
+    object-fit: contain;
+}
+
 /* Container */
 .container {
     max-width: 1000px;
@@ -282,3 +288,4 @@ select option:disabled {
         font-size: 1em;
     }
 }
+

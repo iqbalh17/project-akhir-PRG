@@ -1,10 +1,20 @@
+p {
+    text-align: justify;
+}
+
+.logo-img {
+    height: 50px; 
+    width: auto;
+    object-fit: contain;
+}
+
 .hero {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 4rem 5%;
     background-color: var(--bg-light);
-    min-height: 80vh;
+    min-height: 90vh;
 }
 
 .hero-text {
@@ -112,8 +122,8 @@
 
 .center-illustration img {
     width: 100%;
-    max-width: 300px;
-    border-radius: 50%;
+    max-width: 400px;
+    border-radius: 10%;
 }
 
 /* Icon Colors */
@@ -137,7 +147,6 @@
     color: var(--accent-red);
 }
 
-/* CTA Section */
 .cta-section {
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
     color: var(--white);
@@ -160,6 +169,100 @@
     margin-left: auto;
     margin-right: auto;
     opacity: 0.95;
+}
+
+.btn-white { 
+    background-color: white; 
+    color: var(--secondary-color); 
+    padding: 1rem 2.5rem; 
+    border-radius: 50px; 
+    text-decoration: none; 
+    font-weight: bold; 
+    font-size: 1.1rem; 
+    transition: 0.3s; 
+    display: inline-block; 
+}
+
+.btn-white:hover { 
+    background-color: var(--primary-color); 
+    color: white; 
+}
+
+.edu-intro-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4rem;
+    margin-bottom: 4rem; 
+    text-align: left; 
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.edu-intro-text {
+    flex: 1;
+}
+
+.edu-intro-text h2 {
+    font-size: 2.2rem;
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    line-height: 1.3;
+}
+
+.edu-intro-text p {
+    font-size: 1.1rem;
+    color: #4b5563;
+    margin-bottom: 1.2rem;
+    text-align: justify; 
+}
+
+.edu-intro-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.edu-intro-image img {
+    width: 100%;
+    max-width: 450px;
+    border-radius: 20px;
+}
+
+.edu-divider {
+    height: 1px;
+    background-color: #e2e8f0;
+    width: 80%;
+    margin: 4rem auto;
+}
+
+.edu-grid-layout {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.edu-left-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.edu-left-image .center-illustration img {
+    width: 100%;
+    max-width: 450px;
+    height: auto;
+}
+
+.edu-right-cards {
+    flex: 1.2;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 1.5rem;
 }
 
 /* Responsive */
