@@ -1,160 +1,235 @@
-// Thin JS UI layer — panggil ItemManager (C++)
-let itemManager;
+let items = [];
+let Module;
+let editingIndex = -1;
 
-// Load WASM module (assumes build/carbon_calculator.js available)
+// Load WASM module
 CarbonCalculator().then(function(module) {
-    if (!module.ItemManager) {
-        console.error('ItemManager tidak ditemukan di WASM module', module);
-        document.getElementById('loading').innerHTML = '<h2 style="color:#e74c3c">Module tidak expose ItemManager</h2>';
-        return;
-    }
-
-    itemManager = new module.ItemManager();
-
+    Module = module;
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    console.log('C++ Module berhasil dimuat');
-
-    updateItemList();
-    updateDropdownOptions();
+    console.log('C++ Module berhasil dimuat!');
 }).catch(err => {
-    document.getElementById('loading').innerHTML =
+    document.getElementById('loading').innerHTML = 
         '<h2 style="color: #e74c3c;">Error Memuat Module</h2>' +
         '<p style="color: #636e72; margin-top: 15px;">' + err + '</p>';
     console.error('Error loading WASM:', err);
 });
 
-// Update dropdown (disable used categories)
+
 function updateDropdownOptions() {
-    if (!itemManager) return;
     const select = document.getElementById('kategori');
-    const allOptions = Array.from(select.querySelectorAll('option'));
-
-    let usedVal;
-    try { usedVal = itemManager.getUsedCategories(); } catch(e) { usedVal = null; console.error(e); }
-    const used = [];
-    if (usedVal && typeof usedVal.size === 'function') {
-        for (let i=0;i<usedVal.size();++i) used.push(usedVal.get(i));
-    }
-
+    const allOptions = select.querySelectorAll('option');
+    
+    const usedKategori = items
+        .map((item, index) => index === editingIndex ? null : item.kategori)
+        .filter(k => k !== null);
+    
     allOptions.forEach(option => {
         if (option.value === '') return;
-        if (used.includes(option.value)) {
+        
+        const originalValue = option.value;
+        
+        if (usedKategori.includes(originalValue)) {
             option.disabled = true;
-            if (!option.dataset.orig) option.dataset.orig = option.textContent;
-            option.textContent = option.dataset.orig + ' (Sudah dipilih)';
+            if (!option.dataset.originalText) {
+                option.dataset.originalText = option.textContent;
+            }
+            option.textContent = option.dataset.originalText + ' (Sudah dipilih)';
         } else {
             option.disabled = false;
-            if (option.dataset.orig) option.textContent = option.dataset.orig;
+            if (option.dataset.originalText) {
+                option.textContent = option.dataset.originalText;
+            }
         }
     });
 }
 
-// Add / Update item (delegated to C++)
 function tambahItem() {
-    if (!itemManager) return;
     const kategori = document.getElementById('kategori').value;
-    const jumlah = parseInt(document.getElementById('jumlah').value) || 0;
-    const jam = parseFloat(document.getElementById('jamOperasi').value) || 0;
+    const jumlah = parseInt(document.getElementById('jumlah').value);
+    const jamOperasi = parseFloat(document.getElementById('jamOperasi').value);
 
-    const res = itemManager.addItem(kategori, jumlah, jam);
-    if (res !== 'ADD_SUCCESS' && res !== 'UPDATE_SUCCESS') {
-        alert(res);
+    if (!kategori || kategori === '') {
+        alert('Pilih kategori peralatan terlebih dahulu.');
+        document.getElementById('kategori').focus();
         return;
     }
-    if (res === 'UPDATE_SUCCESS') {
-        const btn = document.querySelector('.btn-primary');
-        if (btn) { btn.textContent = 'Tambah ke Daftar'; btn.style.background = ''; }
+
+    if (!jumlah || !jamOperasi) {
+        alert('Harap isi semua field.');
+        return;
     }
+
+    if (jumlah <= 0 || jamOperasi < 0 || jamOperasi > 24) {
+        alert('Nilai tidak valid. Jumlah harus > 0 dan jam operasi harus 0–24.');
+        return;
+    }
+
+    const item = {
+        kategori: kategori,
+        jumlah: jumlah,
+        jam_operasi_per_hari: jamOperasi
+    };
+
+    if (editingIndex >= 0) {
+        items[editingIndex] = item;
+        editingIndex = -1;
+        document.querySelector('.btn-primary').textContent = 'Tambah ke Daftar';
+        document.querySelector('.btn-primary').style.background = '';
+    } else {
+        items.push(item);
+    }
+
     updateItemList();
     updateDropdownOptions();
+    
     document.getElementById('jumlah').value = '';
     document.getElementById('jamOperasi').value = '';
     document.getElementById('kategori').selectedIndex = 0;
     document.getElementById('jumlah').focus();
 }
 
-// Render item list using C++ vector<Item>
 function updateItemList() {
-    if (!itemManager) return;
-    const container = document.getElementById('itemList');
-
-    let listVal;
-    try { listVal = itemManager.getItemList(); } catch(e) { console.error(e); container.innerHTML=''; return; }
-
-    if (!listVal || typeof listVal.size !== 'function') { container.innerHTML = ''; return; }
-
-    const count = listVal.size();
-    if (count === 0) { container.innerHTML = ''; return; }
-
-    let html = `<h3>Daftar Peralatan (${count} item)</h3>`;
-    for (let i=0;i<count;++i) {
-        const it = listVal.get(i);
-        const kategori = it.kategori;
-        const jumlah = it.jumlah;
-        const jam = it.jam_operasi_per_hari;
-        const isEditing = false; // editing state kept in C++ but embind value_object doesn't auto include isEditing here
-        html += `<div class="item-entry ${isEditing ? 'editing' : ''}">
-            <span><strong>${kategori}</strong> - ${jumlah} unit × ${jam} jam/hari</span>
-            <div class="item-actions">
-                <button onclick="editItem(${i})" class="btn btn-edit">Edit</button>
-                <button onclick="hapusItem(${i})" class="btn btn-delete">Hapus</button>
-            </div>
-        </div>`;
+    const itemListDiv = document.getElementById('itemList');
+    
+    if (items.length > 0) {
+        itemListDiv.innerHTML = `
+            <h3>Daftar Peralatan (${items.length} item)</h3>
+            ${items.map((item, index) => `
+                <div class="item-entry ${editingIndex === index ? 'editing' : ''}">
+                    <span>
+                        <strong>${item.kategori}</strong> - 
+                        ${item.jumlah} unit ${item.jam_operasi_per_hari} jam/hari
+                    </span>
+                    <div class="item-actions">
+                        <button onclick="editItem(${index})" class="btn btn-edit" title="Edit">
+                            Edit
+                        </button>
+                        <button onclick="hapusItem(${index})" class="btn btn-delete" title="Hapus">
+                            Hapus
+                        </button>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    } else {
+        itemListDiv.innerHTML = '';
     }
-    container.innerHTML = html;
 }
 
-// Edit: request Item from C++
 function editItem(index) {
-    if (!itemManager) return;
-    const itm = itemManager.startEdit(index);
-    if (!itm || !itm.kategori) { alert('Item tidak ditemukan'); return; }
-
-    document.getElementById('kategori').value = itm.kategori;
-    document.getElementById('jumlah').value = itm.jumlah;
-    document.getElementById('jamOperasi').value = itm.jam_operasi_per_hari;
-
-    const btn = document.querySelector('.btn-primary');
-    if (btn) { btn.textContent = '✅ Update Item'; btn.style.background = 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)'; }
-
-    updateItemList();
+    const item = items[index];
+    
+    document.getElementById('kategori').value = item.kategori;
+    document.getElementById('jumlah').value = item.jumlah;
+    document.getElementById('jamOperasi').value = item.jam_operasi_per_hari;
+    
+    editingIndex = index;
     updateDropdownOptions();
-    document.querySelector('.form-group').scrollIntoView({behavior:'smooth', block:'start'});
+    
+    const btn = document.querySelector('.btn-primary');
+    btn.textContent = 'Update Item';
+    btn.style.background = 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
+    
+    updateItemList();
+    document.querySelector('.form-group').scrollIntoView({ behavior: 'smooth', block: 'start' });
     document.getElementById('jumlah').focus();
 }
 
-// Delete in C++
 function hapusItem(index) {
-    if (!itemManager) return;
     if (!confirm('Yakin ingin menghapus item ini?')) return;
-    const ok = itemManager.deleteItem(index);
-    if (!ok) { alert('Gagal menghapus item'); return; }
-    // reset form if not editing
-    if (!itemManager.isEditing()) {
-        const btn = document.querySelector('.btn-primary');
-        if (btn) { btn.textContent = 'Tambah ke Daftar'; btn.style.background = ''; }
+    
+    if (editingIndex === index) {
+        editingIndex = -1;
+        document.querySelector('.btn-primary').textContent = 'Tambah ke Daftar';
+        document.querySelector('.btn-primary').style.background = '';
         document.getElementById('jumlah').value = '';
         document.getElementById('jamOperasi').value = '';
         document.getElementById('kategori').selectedIndex = 0;
+    } else if (editingIndex > index) {
+        editingIndex--;
     }
+    
+    items.splice(index, 1);
     updateItemList();
     updateDropdownOptions();
 }
 
-// Hitung - use C++ calculation + formatResult
 function hitungKarbon() {
-    if (!itemManager) return;
+    if (editingIndex >= 0) {
+        alert('Selesaikan proses edit terlebih dahulu.');
+        return;
+    }
+    
+    if (!Module) {
+        alert('Module C++ belum dimuat.');
+        return;
+    }
+
+    if (items.length === 0) {
+        alert('Tambahkan minimal satu peralatan.');
+        return;
+    }
+
+    const luas = parseFloat(document.getElementById('luasGedung').value);
     const nama = document.getElementById('namaGedung').value.trim();
-    const luas = parseFloat(document.getElementById('luasGedung').value) || 0;
-    const err = itemManager.validateCalculation(nama, luas);
-    if (err) { alert(err); return; }
-    const html = itemManager.formatResult(nama, luas);
-    document.getElementById('result').innerHTML = html;
-    document.getElementById('result').scrollIntoView({behavior:'smooth', block:'nearest'});
+
+    if (!luas || !nama) {
+        alert('Harap isi nama dan luas gedung.');
+        return;
+    }
+
+    if (luas <= 0) {
+        alert('Luas gedung harus lebih dari 0.');
+        return;
+    }
+
+    try {
+        const itemVector = new Module.ItemVector();
+        items.forEach(item => itemVector.push_back(item));
+
+        const totalEmisiKg = Module.calculateCarbonEmission(itemVector);
+        const status = Module.determineStatus(totalEmisiKg, luas);
+        const percentage = Module.getPercentageOfThreshold(totalEmisiKg, luas);
+
+        itemVector.delete();
+
+        let statusClass = 'status-aman';
+        if (status.includes('PERHATIAN')) statusClass = 'status-perhatian';
+        if (status.includes('BERBAHAYA')) statusClass = 'status-bahaya';
+
+        document.getElementById('result').innerHTML = `
+            <div class="card result ${statusClass}">
+                <h2>Hasil Perhitungan: ${nama}</h2>
+                <div class="result-detail">
+                    <p><strong>Total Emisi Karbon:</strong> ${totalEmisiKg.toFixed(2)} kg CO₂/tahun</p>
+                    <p><strong>Dalam Ton:</strong> ${(totalEmisiKg / 1000).toFixed(3)} ton CO₂/tahun</p>
+                    <p><strong>Emisi per m²:</strong> ${(totalEmisiKg / luas).toFixed(2)} kg CO₂/m²/tahun</p>
+                    <p><strong>Persentase dari Threshold:</strong> ${percentage.toFixed(1)}%</p>
+                    <p><strong>Standar Green Building:</strong> < 50 kg CO₂/m²/tahun</p>
+                </div>
+                <h3>Status: ${status}</h3>
+                ${percentage < 100 
+                    ? '<p style="margin-top: 20px; font-size: 1.15em; color: #27ae60;">Gedung memenuhi standar green building.</p>' 
+                    : '<p style="margin-top: 20px; font-size: 1.15em; color: #e67e22;">Konsumsi energi perlu dikurangi.</p>'}
+            </div>
+        `;
+
+        document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    } catch (error) {
+        alert('Error saat menghitung: ' + error);
+        console.error('Calculation error:', error);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const jamInput = document.getElementById('jamOperasi');
-    if (jamInput) jamInput.addEventListener('keypress', function(e){ if (e.key === 'Enter') tambahItem(); });
+    if (jamInput) {
+        jamInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') tambahItem();
+        });
+    }
+    
+    updateDropdownOptions();
 });

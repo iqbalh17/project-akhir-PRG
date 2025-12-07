@@ -1,15 +1,9 @@
 #include <emscripten/bind.h>
 #include <vector>
 #include <string>
-#include <map>
-#include <sstream>
-#include <iomanip>
 
 using namespace emscripten;
 using namespace std;
-using string;
-using vector;
-using map;
 
 // ============================================
 // KONSTANTA EMISSION FACTOR
@@ -37,202 +31,148 @@ struct Item {
     string kategori;
     int jumlah;
     double jam_operasi_per_hari;
+};
+
+// ============================================
+// FUNCTION PERHITUNGAN
+// ============================================
+
+double hitungAC(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_AC;
+}
+
+double hitungLampuPanel(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_LAMPU_PANEL;
+}
+
+double hitungLift(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_LIFT;
+}
+
+double hitungKomputer(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_KOMPUTER;
+}
+
+double hitungServer(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_SERVER;
+}
+
+double hitungWifi(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_WIFI;
+}
+
+double hitungProyektor(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_PROYEKTOR;
+}
+
+double hitungPompaAir(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_POMPA_AIR;
+}
+
+double hitungLampuKoridor(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_LAMPU_KORIDOR;
+}
+
+double hitungCCTV(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_CCTV;
+}
+
+double hitungKulkas(int jumlah, double jam) {
+    return jumlah * jam * FACTOR_KULKAS;
+}
+
+// ============================================
+// FUNCTION UTAMA
+// ============================================
+
+double calculateCarbonEmission(vector<Item> items) {
+    double total_emisi_per_hari = 0.0;
     
-    Item() : kategori(""), jumlah(0), jam_operasi_per_hari(0.0) {}
-    Item(const string& k, int j, double jam) : kategori(k), jumlah(j), jam_operasi_per_hari(jam) {}
-};
-
-// ============================================
-// ITEM MANAGER (LOGIC DI C++)
-// ============================================
-
-class ItemManager {
-private:
-    vector<Item> items;
-    int editingIndex;
-    map<string,double> emissionFactors;
-
-    void initFactors() {
-        emissionFactors["AC"] = FACTOR_AC;
-        emissionFactors["Lampu Panel LED"] = FACTOR_LAMPU_PANEL;
-        emissionFactors["Lampu Koridor"] = FACTOR_LAMPU_KORIDOR;
-        emissionFactors["Lift"] = FACTOR_LIFT;
-        emissionFactors["Komputer"] = FACTOR_KOMPUTER;
-        emissionFactors["Server"] = FACTOR_SERVER;
-        emissionFactors["WiFi"] = FACTOR_WIFI;
-        emissionFactors["Proyektor"] = FACTOR_PROYEKTOR;
-        emissionFactors["Pompa Air"] = FACTOR_POMPA_AIR;
-        emissionFactors["CCTV"] = FACTOR_CCTV;
-        emissionFactors["Kulkas"] = FACTOR_KULKAS;
-    }
-
-    double emissionFor(const Item& it) const {
-        auto itf = emissionFactors.find(it.kategori);
-        if (itf == emissionFactors.end()) return 0.0;
-        // emisi per tahun: jumlah * jam * factor * 365
-        return it.jumlah * it.jam_operasi_per_hari * itf->second * 365.0;
-    }
-
-public:
-    ItemManager() : editingIndex(-1) { initFactors(); }
-
-    // validation for add/update
-    string validateInput(const string& kategori, int jumlah, double jamOperasi) {
-        if (kategori.empty()) return "Pilih kategori peralatan terlebih dahulu.";
-        if (jumlah <= 0) return "Jumlah harus lebih dari 0.";
-        if (jamOperasi < 0.0 || jamOperasi > 24.0) return "Jam operasi harus antara 0-24.";
-        // duplicate check:
-        if (editingIndex == -1) {
-            for (size_t i=0;i<items.size();++i) if (items[i].kategori == kategori) return "Kategori sudah dipilih. Gunakan Edit untuk mengubah.";
-        } else {
-            for (size_t i=0;i<items.size();++i) if ((int)i != editingIndex && items[i].kategori == kategori) return "Kategori sudah dipilih. Gunakan Edit untuk mengubah.";
+    for (const auto& item : items) {
+        double emisi_per_hari = 0.0;
+        
+        if (item.kategori == "AC") {
+            emisi_per_hari = hitungAC(item.jumlah, item.jam_operasi_per_hari);
         }
-        return "";
-    }
-
-    // add or update item; returns "ADD_SUCCESS" or "UPDATE_SUCCESS" or error message
-    string addItem(const string& kategori, int jumlah, double jamOperasi) {
-        string v = validateInput(kategori, jumlah, jamOperasi);
-        if (!v.empty()) return v;
-        Item it(kategori, jumlah, jamOperasi);
-        if (editingIndex >= 0) {
-            items[editingIndex] = it;
-            editingIndex = -1;
-            return "UPDATE_SUCCESS";
-        } else {
-            items.push_back(it);
-            return "ADD_SUCCESS";
+        else if (item.kategori == "Lampu Panel LED") {
+            emisi_per_hari = hitungLampuPanel(item.jumlah, item.jam_operasi_per_hari);
         }
-    }
-
-    // start editing - return Item (empty kategori => invalid)
-    Item startEdit(int index) {
-        if (index < 0 || index >= (int)items.size()) return Item();
-        editingIndex = index;
-        return items[index];
-    }
-
-    void cancelEdit() { editingIndex = -1; }
-    bool isEditing() const { return editingIndex >= 0; }
-    int getEditingIndex() const { return editingIndex; }
-
-    bool deleteItem(int index) {
-        if (index < 0 || index >= (int)items.size()) return false;
-        items.erase(items.begin() + index);
-        if (editingIndex == index) editingIndex = -1;
-        else if (editingIndex > index) editingIndex--;
-        return true;
-    }
-
-    // Return registered vector<Item> so JS can use .size()/.get(i)
-    vector<Item> getItemList() const {
-        return items;
-    }
-
-    int getItemCount() const { return (int)items.size(); }
-
-    // Return vector<string> of used categories (excluding item being edited)
-    vector<string> getUsedCategories() const {
-        vector<string> out;
-        for (size_t i=0;i<items.size();++i) if ((int)i != editingIndex) out.push_back(items[i].kategori);
-        return out;
-    }
-
-    // calculation
-    double calculateCarbonEmission() const {
-        double total = 0.0;
-        for (const auto &it : items) total += emissionFor(it);
-        return total;
-    }
-
-    string determineStatus(double emisi_kg, double luas_m2) const {
-        if (luas_m2 <= 0.0) return string("ERROR: Luas tidak valid");
-        double emisi_per_m2 = emisi_kg / luas_m2;
-        if (emisi_per_m2 < THRESHOLD_AMAN) return "AMAN - Gedung Ramah Lingkungan";
-        else if (emisi_per_m2 < THRESHOLD_AMAN * 1.6) return "PERLU PERHATIAN - Mendekati Batas Aman";
-        else return "BERBAHAYA - Melebihi Batas Emisi";
-    }
-
-    double getPercentageOfThreshold(double emisi_kg, double luas_m2) const {
-        if (luas_m2 <= 0.0) return 0.0;
-        double emisi_per_m2 = emisi_kg / luas_m2;
-        return (emisi_per_m2 / THRESHOLD_AMAN) * 100.0;
-    }
-
-    // format result to HTML string (simple)
-    string formatResult(const string& namaGedung, double luas) const {
-        string err = validateCalculation(namaGedung, luas);
-        if (!err.empty()) return string("<p style='color:#e74c3c;'>") + err + "</p>";
-
-        double totalEmisi = calculateCarbonEmission();
-        string status = determineStatus(totalEmisi, luas);
-        double perc = getPercentageOfThreshold(totalEmisi, luas);
-
-        ostringstream oss;
-        oss << fixed << setprecision(2);
-        string statusClass = "status-aman";
-        if (status.find("PERLU PERHATIAN") != string::npos) statusClass = "status-perhatian";
-        if (status.find("BERBAHAYA") != string::npos) statusClass = "status-bahaya";
-
-        oss << "<div class='card result " << statusClass << "'>";
-        oss << "<h2>Hasil Perhitungan: " << namaGedung << "</h2>";
-        oss << "<div class='result-detail'>";
-        oss << "<p><strong>Total Emisi Karbon:</strong> " << totalEmisi << " kg CO₂/tahun</p>";
-        oss << setprecision(3);
-        oss << "<p><strong>Dalam Ton:</strong> " << (totalEmisi / 1000.0) << " ton CO₂/tahun</p>";
-        oss << setprecision(2);
-        oss << "<p><strong>Emisi per m²:</strong> " << (totalEmisi / luas) << " kg CO₂/m²/tahun</p>";
-        oss << setprecision(1);
-        oss << "<p><strong>Persentase dari Threshold:</strong> " << perc << "%</p>";
-        oss << "<p><strong>Standar Green Building:</strong> &lt; 50 kg CO₂/m²/tahun</p>";
-        oss << "</div>";
-        oss << "<h3>Status: " << status << "</h3>";
-        if (perc < 100.0) {
-            oss << "<p style='margin-top:20px;color:#27ae60;'>Gedung memenuhi standar green building.</p>";
-        } else {
-            oss << "<p style='margin-top:20px;color:#e67e22;'>Konsumsi energi perlu dikurangi.</p>";
+        else if (item.kategori == "Lift") {
+            emisi_per_hari = hitungLift(item. jumlah, item.jam_operasi_per_hari);
         }
-        oss << "</div>";
-        return oss.str();
+        else if (item.kategori == "Komputer") {
+            emisi_per_hari = hitungKomputer(item.jumlah, item.jam_operasi_per_hari);
+        }
+        else if (item.kategori == "Server") {
+            emisi_per_hari = hitungServer(item.jumlah, item.jam_operasi_per_hari);
+        }
+        else if (item. kategori == "WiFi") {
+            emisi_per_hari = hitungWifi(item.jumlah, item.jam_operasi_per_hari);
+        }
+        else if (item.kategori == "Proyektor") {
+            emisi_per_hari = hitungProyektor(item.jumlah, item.jam_operasi_per_hari);
+        }
+        else if (item.kategori == "Pompa Air") {
+            emisi_per_hari = hitungPompaAir(item.jumlah, item.jam_operasi_per_hari);
+        }
+        else if (item.kategori == "Lampu Koridor") {
+            emisi_per_hari = hitungLampuKoridor(item.jumlah, item.jam_operasi_per_hari);
+        }
+        else if (item. kategori == "CCTV") {
+            emisi_per_hari = hitungCCTV(item.jumlah, item.jam_operasi_per_hari);
+        }
+        else if (item.kategori == "Kulkas") {
+            emisi_per_hari = hitungKulkas(item.jumlah, item.jam_operasi_per_hari);
+        }
+        
+        total_emisi_per_hari += emisi_per_hari;
     }
+    
+    return total_emisi_per_hari * 365.0;
+}
 
-    string validateCalculation(const string& nama, double luas) const {
-        if (editingIndex >= 0) return "Selesaikan proses edit terlebih dahulu.";
-        if (items.empty()) return "Tambahkan minimal satu peralatan.";
-        if (nama.empty()) return "Masukkan nama gedung.";
-        if (luas <= 0.0) return "Luas gedung harus lebih dari 0.";
-        return "";
+string determineStatus(double emisi_kg, double luas_m2) {
+    double emisi_per_m2 = emisi_kg / luas_m2;
+    
+    if (emisi_per_m2 < THRESHOLD_AMAN) {
+        return "AMAN - Gedung Ramah Lingkungan";
+    } else if (emisi_per_m2 < 80.0) {
+        return "PERLU PERHATIAN - Mendekati Batas Aman";
+    } else {
+        return "BERBAHAYA - Melebihi Batas Emisi";
     }
-};
+}
+
+double getPercentageOfThreshold(double emisi_kg, double luas_m2) {
+    double emisi_per_m2 = emisi_kg / luas_m2;
+    return (emisi_per_m2 / THRESHOLD_AMAN) * 100.0;
+}
 
 // ============================================
-// BINDINGS
+// BINDING KE JAVASCRIPT
 // ============================================
 
-EMSCRIPTEN_BINDINGS(carbon_calculator_module) {
+EMSCRIPTEN_BINDINGS(carbon_calculator) {
     value_object<Item>("Item")
         .field("kategori", &Item::kategori)
         .field("jumlah", &Item::jumlah)
         .field("jam_operasi_per_hari", &Item::jam_operasi_per_hari);
-
+    
+    emscripten::function("calculateCarbonEmission", &calculateCarbonEmission);
+    emscripten::function("determineStatus", &determineStatus);
+    emscripten::function("getPercentageOfThreshold", &getPercentageOfThreshold);
+    
+    emscripten::function("hitungAC", &hitungAC);
+    emscripten::function("hitungLampuPanel", &hitungLampuPanel);
+    emscripten::function("hitungLift", &hitungLift);
+    emscripten::function("hitungKomputer", &hitungKomputer);
+    emscripten::function("hitungServer", &hitungServer);
+    emscripten::function("hitungWifi", &hitungWifi);
+    emscripten::function("hitungProyektor", &hitungProyektor);
+    emscripten::function("hitungPompaAir", &hitungPompaAir);
+    emscripten::function("hitungLampuKoridor", &hitungLampuKoridor);
+    emscripten::function("hitungCCTV", &hitungCCTV);
+    emscripten::function("hitungKulkas", &hitungKulkas);
+    
     register_vector<Item>("ItemVector");
-    register_vector<string>("StringVector");
-
-    class_<ItemManager>("ItemManager")
-        .constructor<>()
-        .function("validateInput", &ItemManager::validateInput)
-        .function("addItem", &ItemManager::addItem)
-        .function("startEdit", &ItemManager::startEdit)
-        .function("cancelEdit", &ItemManager::cancelEdit)
-        .function("deleteItem", &ItemManager::deleteItem)
-        .function("getItemList", &ItemManager::getItemList)
-        .function("getItemCount", &ItemManager::getItemCount)
-        .function("getUsedCategories", &ItemManager::getUsedCategories)
-        .function("isEditing", &ItemManager::isEditing)
-        .function("getEditingIndex", &ItemManager::getEditingIndex)
-        .function("calculateCarbonEmission", &ItemManager::calculateCarbonEmission)
-        .function("determineStatus", &ItemManager::determineStatus)
-        .function("getPercentageOfThreshold", &ItemManager::getPercentageOfThreshold)
-        .function("formatResult", &ItemManager::formatResult)
-        .function("validateCalculation", &ItemManager::validateCalculation);
 }
