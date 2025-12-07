@@ -6,9 +6,10 @@
 #include <iomanip>
 
 using namespace emscripten;
-using std::string;
-using std::vector;
-using std::map;
+using namespace std;
+using string;
+using vector;
+using map;
 
 // ============================================
 // KONSTANTA EMISSION FACTOR
@@ -33,23 +34,23 @@ const double THRESHOLD_AMAN = 50.0;
 // ============================================
 
 struct Item {
-    std::string kategori;
+    string kategori;
     int jumlah;
     double jam_operasi_per_hari;
     
     Item() : kategori(""), jumlah(0), jam_operasi_per_hari(0.0) {}
-    Item(const std::string& k, int j, double jam) : kategori(k), jumlah(j), jam_operasi_per_hari(jam) {}
+    Item(const string& k, int j, double jam) : kategori(k), jumlah(j), jam_operasi_per_hari(jam) {}
 };
 
 // ============================================
-// ITEM MANAGER (BUSINESS LOGIC DI C++)
+// ITEM MANAGER (LOGIC DI C++)
 // ============================================
 
 class ItemManager {
 private:
-    std::vector<Item> items;
+    vector<Item> items;
     int editingIndex;
-    std::map<std::string,double> emissionFactors;
+    map<string,double> emissionFactors;
 
     void initFactors() {
         emissionFactors["AC"] = FACTOR_AC;
@@ -76,7 +77,7 @@ public:
     ItemManager() : editingIndex(-1) { initFactors(); }
 
     // validation for add/update
-    std::string validateInput(const std::string& kategori, int jumlah, double jamOperasi) {
+    string validateInput(const string& kategori, int jumlah, double jamOperasi) {
         if (kategori.empty()) return "Pilih kategori peralatan terlebih dahulu.";
         if (jumlah <= 0) return "Jumlah harus lebih dari 0.";
         if (jamOperasi < 0.0 || jamOperasi > 24.0) return "Jam operasi harus antara 0-24.";
@@ -90,8 +91,8 @@ public:
     }
 
     // add or update item; returns "ADD_SUCCESS" or "UPDATE_SUCCESS" or error message
-    std::string addItem(const std::string& kategori, int jumlah, double jamOperasi) {
-        std::string v = validateInput(kategori, jumlah, jamOperasi);
+    string addItem(const string& kategori, int jumlah, double jamOperasi) {
+        string v = validateInput(kategori, jumlah, jamOperasi);
         if (!v.empty()) return v;
         Item it(kategori, jumlah, jamOperasi);
         if (editingIndex >= 0) {
@@ -124,15 +125,15 @@ public:
     }
 
     // Return registered vector<Item> so JS can use .size()/.get(i)
-    std::vector<Item> getItemList() const {
+    vector<Item> getItemList() const {
         return items;
     }
 
     int getItemCount() const { return (int)items.size(); }
 
     // Return vector<string> of used categories (excluding item being edited)
-    std::vector<std::string> getUsedCategories() const {
-        std::vector<std::string> out;
+    vector<string> getUsedCategories() const {
+        vector<string> out;
         for (size_t i=0;i<items.size();++i) if ((int)i != editingIndex) out.push_back(items[i].kategori);
         return out;
     }
@@ -144,8 +145,8 @@ public:
         return total;
     }
 
-    std::string determineStatus(double emisi_kg, double luas_m2) const {
-        if (luas_m2 <= 0.0) return std::string("ERROR: Luas tidak valid");
+    string determineStatus(double emisi_kg, double luas_m2) const {
+        if (luas_m2 <= 0.0) return string("ERROR: Luas tidak valid");
         double emisi_per_m2 = emisi_kg / luas_m2;
         if (emisi_per_m2 < THRESHOLD_AMAN) return "AMAN - Gedung Ramah Lingkungan";
         else if (emisi_per_m2 < THRESHOLD_AMAN * 1.6) return "PERLU PERHATIAN - Mendekati Batas Aman";
@@ -159,29 +160,29 @@ public:
     }
 
     // format result to HTML string (simple)
-    std::string formatResult(const std::string& namaGedung, double luas) const {
-        std::string err = validateCalculation(namaGedung, luas);
-        if (!err.empty()) return std::string("<p style='color:#e74c3c;'>") + err + "</p>";
+    string formatResult(const string& namaGedung, double luas) const {
+        string err = validateCalculation(namaGedung, luas);
+        if (!err.empty()) return string("<p style='color:#e74c3c;'>") + err + "</p>";
 
         double totalEmisi = calculateCarbonEmission();
-        std::string status = determineStatus(totalEmisi, luas);
+        string status = determineStatus(totalEmisi, luas);
         double perc = getPercentageOfThreshold(totalEmisi, luas);
 
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(2);
-        std::string statusClass = "status-aman";
-        if (status.find("PERLU PERHATIAN") != std::string::npos) statusClass = "status-perhatian";
-        if (status.find("BERBAHAYA") != std::string::npos) statusClass = "status-bahaya";
+        ostringstream oss;
+        oss << fixed << setprecision(2);
+        string statusClass = "status-aman";
+        if (status.find("PERLU PERHATIAN") != string::npos) statusClass = "status-perhatian";
+        if (status.find("BERBAHAYA") != string::npos) statusClass = "status-bahaya";
 
         oss << "<div class='card result " << statusClass << "'>";
         oss << "<h2>Hasil Perhitungan: " << namaGedung << "</h2>";
         oss << "<div class='result-detail'>";
         oss << "<p><strong>Total Emisi Karbon:</strong> " << totalEmisi << " kg CO₂/tahun</p>";
-        oss << std::setprecision(3);
+        oss << setprecision(3);
         oss << "<p><strong>Dalam Ton:</strong> " << (totalEmisi / 1000.0) << " ton CO₂/tahun</p>";
-        oss << std::setprecision(2);
+        oss << setprecision(2);
         oss << "<p><strong>Emisi per m²:</strong> " << (totalEmisi / luas) << " kg CO₂/m²/tahun</p>";
-        oss << std::setprecision(1);
+        oss << setprecision(1);
         oss << "<p><strong>Persentase dari Threshold:</strong> " << perc << "%</p>";
         oss << "<p><strong>Standar Green Building:</strong> &lt; 50 kg CO₂/m²/tahun</p>";
         oss << "</div>";
@@ -195,7 +196,7 @@ public:
         return oss.str();
     }
 
-    std::string validateCalculation(const std::string& nama, double luas) const {
+    string validateCalculation(const string& nama, double luas) const {
         if (editingIndex >= 0) return "Selesaikan proses edit terlebih dahulu.";
         if (items.empty()) return "Tambahkan minimal satu peralatan.";
         if (nama.empty()) return "Masukkan nama gedung.";
@@ -215,7 +216,7 @@ EMSCRIPTEN_BINDINGS(carbon_calculator_module) {
         .field("jam_operasi_per_hari", &Item::jam_operasi_per_hari);
 
     register_vector<Item>("ItemVector");
-    register_vector<std::string>("StringVector");
+    register_vector<string>("StringVector");
 
     class_<ItemManager>("ItemManager")
         .constructor<>()
