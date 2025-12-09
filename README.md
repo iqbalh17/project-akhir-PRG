@@ -1,4 +1,4 @@
-# Project Akhir PRG
+# JejakKarbonKu
 
 Sebuah website edukasi sederhana yang juga menyediakan fitur kalkulator. Website ini terdiri dari halaman edukasi dan halaman kalkulator. Logika kalkulator ditulis dalam C++ dan dikompilasi ke WebAssembly sehingga dapat dijalankan di browser. Interaksi UI dan pengaturan halaman dilakukan dengan JavaScript.
 
